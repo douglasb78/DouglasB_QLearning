@@ -3,7 +3,7 @@ import numpy as np
 class GameLogic:
     def __init__(self, grid_size=15, win_condition=5):
         self.grid_size = grid_size
-        self.matrix = np.full((grid_size+1, grid_size+1), -1)
+        self.matrix = np.full((grid_size+6, grid_size+6), -1)
         self.win_condition = win_condition
     def check_win(self):
         for i in range(self.grid_size):

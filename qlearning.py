@@ -1,12 +1,27 @@
+import random
+from enum import Enum
+
 import numpy as np
 from game_logic import GameLogic
 
+class LS(Enum):
+    HORIZONTAL_DIREITA = 1
+    HORIZONTAL_ESQUERDA = 2
+    VERTICAL_DESCENDO = 3
+    VERTICAL_SUBINDO = 4
+    DIAGONAL_ESQUERDA_CIMA_DIREITA_BAIXO = 5 # \
+    DIAGONAL_ESQUERDA_BAIXO_DIREITA_CIMA = 6 # /
+    DIAGONAL_DIREITA_CIMA_ESQUERDA_BAIXO = 7 # /
+    DIAGONAL_DIREITA_BAIXO_ESQUERDA_CIMA = 8 # \
+
 class Sequence:
-    def __init__(self, string, start:(int, int), end:(int, int)):
+    def __init__(self, string, start:(int, int), end:(int, int), shape:LS):
+        self.shape = shape
         self.string = string
         self.start = start
         self.end = end
         self.seq_type = None
+        self.seq_shape = None
     def __hash__(self):
         return hash((self.string, self.start, self.end))
     def __eq__(self, other):
@@ -16,7 +31,8 @@ class QLearning:
     def __init__(self, game_logic:GameLogic):
         self.game_logic = game_logic
         self.q_table = np.zeros((3^6, 6), dtype=np.float32) # [729][6]
-        # TODO: pôr detecção de double threat
+        self.last_move = [-1, -1]
+        self.last_goal = None
         # TODO: agora só falta fazer jogar onde tiver '-' e pôr o treinamento.
 
     def get_symbol(self, val):
@@ -24,8 +40,66 @@ class QLearning:
         if val == 1: return "1"
         return "-"
 
+    def play_move(self, threat:Sequence, game_logic:GameLogic):
+        # Se não há uma ameaça, pôr com base no antecessor, tentar formar linhas
+        if not threat:
+            if not self.last_goal:
+                self.last_goal = random.choice(list(LS))
+            if not self.last_move:
+                pass
+        # Se há uma ameaça:
+        elif threat:
+            posicoes, seq_string = self.get_sequence(threat)
+            posicoes_validas = []
+            for i in range(6):
+                if seq_string[i] == '-' and posicoes[i][0] < 15 and posicoes[i][1] < 15:
+                    print(posicoes[i], seq_string[i])
+                    posicoes_validas.append(posicoes[i])
+            if posicoes_validas:
+                random_position = random.randint(0, len(posicoes_validas) - 1)
+                print(random_position, posicoes_validas[random_position])
+                x, y = posicoes_validas[random_position]
+                self.game_logic.matrix[x][y] = 1
+                self.last_move = posicoes_validas[random_position]
+            else:
+                pass
+
+
+    def get_sequence(self, threat:Sequence):
+        posicoes = []
+        seq = ""
+        for k in range(6):
+            # direita baixo esquerda cima
+            # esquerda baixo direita cima
+            if threat.shape == LS.HORIZONTAL_DIREITA:
+                posicoes.append((threat.start[0], threat.start[1] + k))
+                seq += self.get_symbol(self.game_logic.matrix[threat.start[0]][threat.start[1] + k])
+            elif threat.shape == LS.HORIZONTAL_ESQUERDA:
+                posicoes.append((threat.start[0], threat.start[1] - k))
+                seq += self.get_symbol(self.game_logic.matrix[threat.start[0]][threat.start[1] - k])
+            elif threat.shape == LS.VERTICAL_DESCENDO:
+                posicoes.append((threat.start[0] + k, threat.start[1]))
+                seq += self.get_symbol(self.game_logic.matrix[threat.start[0] + k][threat.start[1]])
+            elif threat.shape == LS.VERTICAL_SUBINDO:
+                posicoes.append((threat.start[0] - k, threat.start[1]))
+                seq += self.get_symbol(self.game_logic.matrix[threat.start[0] - k][threat.start[1]])
+            elif threat.shape == LS.DIAGONAL_ESQUERDA_CIMA_DIREITA_BAIXO:
+                posicoes.append((threat.start[0] + k, threat.start[1] + k))
+                seq += self.get_symbol(self.game_logic.matrix[threat.start[0] + k][threat.start[1] + k])
+            elif threat.shape == LS.DIAGONAL_ESQUERDA_BAIXO_DIREITA_CIMA: # ----
+                posicoes.append((threat.start[0] - k, threat.start[1] + k))
+                seq += self.get_symbol(self.game_logic.matrix[threat.start[0] - k][threat.start[1] + k])
+            elif threat.shape == LS.DIAGONAL_DIREITA_CIMA_ESQUERDA_BAIXO:
+                posicoes.append((threat.start[0] + k, threat.start[1] - k))
+                seq += self.get_symbol(self.game_logic.matrix[threat.start[0] + k][threat.start[1] - k])
+            elif threat.shape == LS.DIAGONAL_DIREITA_BAIXO_ESQUERDA_CIMA: # ----
+                posicoes.append((threat.start[0] - k, threat.start[1] - k))
+                seq += self.get_symbol(self.game_logic.matrix[threat.start[0] - k][threat.start[1] - k])
+        return posicoes, seq
+
     # Retorna sequência
-    # É o seguinte .. tabuleiro 15x15 com 6 caracteres
+    # .. isso é para treinar o Q-Learning, se o modelo acabou com uma "ameaça", ganha pontos.
+    # .. se uma ameaça é gerada depois de uma jogada, perde pontos.
     def detect_threats(self):
         grid_size = self.game_logic.grid_size
         sequences = set()
@@ -35,60 +109,50 @@ class QLearning:
                 # Horizontal direita:
                 if j <= grid_size - 6:
                     seq = ''.join(self.get_symbol(self.game_logic.matrix[i][j + k]) for k in range(6))
-                    sequences.add(Sequence(seq, (i, j), (i, j + 6)))
+                    sequences.add(Sequence(seq, (i, j), (i, j + 6), LS.HORIZONTAL_DIREITA))
                 # Horizontal esquerda:
-                if j >= 4:
+                if j >= 5:
                     seq = ''.join(self.get_symbol(self.game_logic.matrix[i][j - k]) for k in range(6))
-                    sequences.add(Sequence(seq, (i, j), (i, j - 6)))
+                    sequences.add(Sequence(seq, (i, j), (i, j - 6), LS.HORIZONTAL_ESQUERDA))
                 # Vertical descendo:
                 if i <= grid_size - 6:
                     seq = ''.join(self.get_symbol(self.game_logic.matrix[i + k][j]) for k in range(6))
-                    sequences.add(Sequence(seq, (i, j), (i + 6, j)))
+                    sequences.add(Sequence(seq, (i, j), (i + 6, j), LS.VERTICAL_DESCENDO))
                 # Vertical subindo:
-                if i >= 4:
+                if i >= 5:
                     seq = ''.join(self.get_symbol(self.game_logic.matrix[i - k][j]) for k in range(6))
-                    sequences.add(Sequence(seq, (i, j), (i - 6, j)))
+                    sequences.add(Sequence(seq, (i, j), (i - 6, j), LS.VERTICAL_SUBINDO))
                 # Diagonal 1º caso:
                 if i <= grid_size - 6 and j <= grid_size - 6:
                     seq = ''.join(self.get_symbol(self.game_logic.matrix[i + k][j + k]) for k in range(6))
-                    sequences.add(Sequence(seq, (i, j), (i + 6, j + 6)))
+                    sequences.add(Sequence(seq, (i, j), (i + 6, j + 6), LS.DIAGONAL_ESQUERDA_CIMA_DIREITA_BAIXO))
                 # Diagonal 2º caso:
-                if i >= 4 and j <= grid_size - 6:
+                if i >= 5 and j <= grid_size - 6:
                     seq = ''.join(self.get_symbol(self.game_logic.matrix[i - k][j + k]) for k in range(6))
-                    sequences.add(Sequence(seq, (i, j), (i - 6, j + 6)))
+                    sequences.add(Sequence(seq, (i, j), (i - 6, j + 6), LS.DIAGONAL_ESQUERDA_BAIXO_DIREITA_CIMA))
                 # Diagonal 3º caso:
-                if i <= grid_size - 6 and j >= 4:
+                if i <= grid_size - 5 and j >= 5:
                     seq = ''.join(self.get_symbol(self.game_logic.matrix[i + k][j - k]) for k in range(6))
-                    sequences.add(Sequence(seq, (i, j), (i + 6, j - 6)))
+                    sequences.add(Sequence(seq, (i, j), (i + 6, j - 6), LS.DIAGONAL_DIREITA_CIMA_ESQUERDA_BAIXO))
                 # Diagonal 4º caso:
-                if i >= 4 and j >= 4:
+                if i >= 5 and j >= 5:
                     seq = ''.join(self.get_symbol(self.game_logic.matrix[i - k][j - k]) for k in range(6))
-                    sequences.add(Sequence(seq, (i, j), (i - 6, j - 6)))
-        # https://github.com/bluemapleman/Reinforcement-Learning-FiveInARow/blob/09a17f4db2c0600d73115360a187e3ed09859f65/AIPlayer.py#L25
+                    sequences.add(Sequence(seq, (i, j), (i - 6, j - 6), LS.DIAGONAL_DIREITA_BAIXO_ESQUERDA_CIMA))
         must = ['11-11', '111-1', '1-111', '1111-', '-1111']  # vitória
         loss = ['00-00', '000-0', '0-000', '0000-', '-0000']  # derrota
         caution = ['-1000-', '-0001-', '-0010-', '-0100-']  # perigo
-        useful = ['-110-', '-011-', '11100', '00111', '11-01', '10-11', '-101-', '-1001-']  # oportunidade
         step_in = None
         for seq in sequences:
             for pattern in must:
                 if pattern in seq.string:
                     step_in = seq
                     step_in.seq_type = "must"
-                    break
             for pattern in loss:
                 if pattern in seq.string:
                     step_in = seq
                     step_in.seq_type = "loss"
-                    break
             for pattern in caution:
                 if pattern in seq.string:
                     step_in = seq
                     step_in.seq_type = "caution"
-                    break
-            for pattern in useful:
-                if pattern in seq.string:
-                    step_in = seq
-                    step_in.seq_type = "useful"
-                    break
         return step_in
