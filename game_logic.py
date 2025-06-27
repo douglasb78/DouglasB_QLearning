@@ -1,10 +1,12 @@
 import numpy as np
 
+
 class GameLogic:
     def __init__(self, grid_size=15, win_condition=5):
         self.grid_size = grid_size
-        self.matrix = np.full((grid_size+6, grid_size+6), -1)
+        self.matrix = np.full((grid_size + 6, grid_size + 6), -1)
         self.win_condition = win_condition
+
     def check_win(self):
         for i in range(self.grid_size):
             for j in range(self.grid_size):
@@ -24,5 +26,5 @@ class GameLogic:
                         return color
         return -1
 
-    def make_move(self, white:int, x:int, y:int):
-        self.matrix[y, x] =     white
+    def make_move(self, white: int, x: int, y: int):
+        self.matrix[y, x] = white
