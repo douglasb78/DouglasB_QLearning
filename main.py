@@ -24,6 +24,7 @@ class GameScreen:
         self.vitorias_pretas = 0
         self.vitorias_brancas = 0
         self.empates = 0
+        self.numero_jogos = 0
 
     def encontrar_centro(self, linha, coluna, tamanho_celula):
         x = coluna * tamanho_celula + tamanho_celula // 2
@@ -66,8 +67,10 @@ class GameScreen:
             self.draw_empate = True
             self.empates += 1
         if self.draw_empate or type(color) == str:
+            self.numero_jogos += 1
             print("\n"*100)
-            print(f"Vitórias pretas: {self.vitorias_pretas}\n"
+            print(f"Jogos: {self.numero_jogos}\n"
+                  f"Vitórias pretas: {self.vitorias_pretas}\n"
                   f"Vitorias brancas: {self.vitorias_brancas}\n"
                   f"Empates: {self.empates}")
             #if self.draw_empate: print("EMPATE")
