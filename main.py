@@ -61,46 +61,45 @@ class GameScreen:
             self.game_logic.matrix = np.full((self.game_logic.grid_size+6, self.game_logic.grid_size+6), -1)
         else:
             if self.fully_ai:
-                for event in pygame.event.get():
-                    if event.type == pygame.KEYUP or True:
-                        if self.jogador_atual == 0:
-                            teste = self.qlearning.find_row_to_place_move_agaisnt(False)
-                            if teste:
-                                # Há ameaça de três, ou quatro:
-                                if teste[1]:
-                                    print(teste[0].string)
-                                    self.qlearning.place_move_agaist_sequence(teste[0], False)
-                                    self.jogador_atual = 1
-                                else:
-                                    teste2 = None
-                                    # Criar fileira:
-                                    if(self.qlearning.current_anchor_black):
-                                        teste2 = self.qlearning.attempt_to_fill_row(self.qlearning.current_anchor_black, False)
-                                    else:
-                                        teste2 = self.qlearning.attempt_to_fill_row(teste[0], False)
-                                    if teste2:
-                                        self.jogador_atual = 1
-                            else:
-                                self.draw_empate = True
+                pygame.event.get()
+                if self.jogador_atual == 0:
+                    teste = self.qlearning.find_row_to_place_move_agaisnt(False)
+                    if teste:
+                        # Há ameaça de três, ou quatro:
+                        if teste[1]:
+                            print(teste[0].string)
+                            self.qlearning.place_move_agaist_sequence(teste[0], False)
+                            self.jogador_atual = 1
                         else:
-                                teste = self.qlearning.find_row_to_place_move_agaisnt(True)
-                                if teste:
-                                    # Há ameaça de três, ou quatro:
-                                    if teste[1]:
-                                        print(teste[0].string)
-                                        self.qlearning.place_move_agaist_sequence(teste[0], True)
-                                        self.jogador_atual = 0
-                                    else:
-                                        teste2 = None
-                                        # Criar fileira:
-                                        if(self.qlearning.current_anchor_white):
-                                            teste2 = self.qlearning.attempt_to_fill_row(self.qlearning.current_anchor_white, True)
-                                        else:
-                                            teste2 = self.qlearning.attempt_to_fill_row(teste[0], True)
-                                        if teste2:
-                                            self.jogador_atual = 0
+                            teste2 = None
+                            # Criar fileira:
+                            if(self.qlearning.current_anchor_black):
+                                teste2 = self.qlearning.attempt_to_fill_row(self.qlearning.current_anchor_black, False)
+                            else:
+                                teste2 = self.qlearning.attempt_to_fill_row(teste[0], False)
+                            if teste2:
+                                self.jogador_atual = 1
+                    else:
+                        self.draw_empate = True
+                else:
+                        teste = self.qlearning.find_row_to_place_move_agaisnt(True)
+                        if teste:
+                            # Há ameaça de três, ou quatro:
+                            if teste[1]:
+                                print(teste[0].string)
+                                self.qlearning.place_move_agaist_sequence(teste[0], True)
+                                self.jogador_atual = 0
+                            else:
+                                teste2 = None
+                                # Criar fileira:
+                                if(self.qlearning.current_anchor_white):
+                                    teste2 = self.qlearning.attempt_to_fill_row(self.qlearning.current_anchor_white, True)
                                 else:
-                                    self.draw_empate = True
+                                    teste2 = self.qlearning.attempt_to_fill_row(teste[0], True)
+                                if teste2:
+                                    self.jogador_atual = 0
+                        else:
+                            self.draw_empate = True
             else:
                 for evento in pygame.event.get():
                     if evento.type == pygame.QUIT:

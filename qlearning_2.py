@@ -103,51 +103,53 @@ class QLearningAlgo:
         print(score)
         self.q_table[last_sequence.string][played_move] += score
 
-    def find_best_direction(self, x:int, y:int, white:bool):
+    def find_best_direction(self, x: int, y: int, white: bool):
         max_count = -1
-        choosen_direction = None
+        chosen_direction = None
         for direction in LS:
             dx, dy = self.game_logic.dicionario_direcoes[direction]
             count = 0
             for i in range(6):
-                if (x + dy * i >= 15) or (y + dx * i >= 15) or (x + dy * i < 0) or (y + dx * i < 0):
-                    count = -1
-                else:
-                    if self.game_logic.matrix[x+dy][y+dx] == white:
+                nx = x + dy * i
+                ny = y + dx * i
+                if 0 <= nx < 15 and 0 <= ny < 15:
+                    if self.game_logic.matrix[nx][ny] == white:
                         count += 1
                     else:
-                        count = 0
+                        break
+                else:
+                    break
             if count > max_count:
                 max_count = count
-                choosen_direction = direction
-        if max_count == 0: choosen_direction = random.choice(list(LS))
-        return (choosen_direction, max_count)
+                chosen_direction = direction
+        if max_count <= 0:
+            chosen_direction = random.choice(list(LS))
+        return (chosen_direction, max_count)
 
     # Função para tentar criar uma fileira, se não existir ameaça:
-    def attempt_to_fill_row(self, sequence:Sequence, white:bool):
-        direction = self.find_best_direction(sequence.start[0], sequence.start[1], white)
-        if direction[0]:
-            if white and not self.current_anchor_white: self.current_anchor_white = sequence
-            if not white and not self.current_anchor_black: self.current_anchor_black = sequence
-            dx, dy = self.game_logic.dicionario_direcoes[direction[0]]
-            current_count = self.anchor_white_count if white else self.anchor_black_count
-            print(f"{sequence.start[0] + dy * current_count} -- {sequence.start[1] + dx * current_count}")
-            if(sequence.start[0] + dy * current_count < 0 ) or (sequence.start[0] + dy * current_count >= 15 ):
-                if not white and self.current_anchor_black: self.current_anchor_black = None
-                return False
-            if(sequence.start[1] + dx * current_count < 0 ) or (sequence.start[1] + dx * current_count >= 15 ):
-                if white and self.current_anchor_white: self.current_anchor_white = None
-                return False
-            self.game_logic.make_move(white, sequence.start[0] + dy * current_count, sequence.start[1] + dx * current_count)
+    def attempt_to_fill_row(self, sequence: Sequence, white: bool):
+        direction, _ = self.find_best_direction(sequence.start[0], sequence.start[1], white)
+        dx, dy = self.game_logic.dicionario_direcoes[direction]
+        anchor_count = self.anchor_white_count if white else self.anchor_black_count
+        x = sequence.start[0] + dy * anchor_count
+        y = sequence.start[1] + dx * anchor_count
+
+        if 0 <= x < 15 and 0 <= y < 15 and self.game_logic.matrix[x][y] == -1:
+            self.game_logic.make_move(white, x, y)
             if white:
+                if not self.current_anchor_white:
+                    self.current_anchor_white = sequence
                 self.anchor_white_count += 1
             else:
+                if not self.current_anchor_black:
+                    self.current_anchor_black = sequence
                 self.anchor_black_count += 1
             return True
+
         if white:
             self.current_anchor_white = None
             self.anchor_white_count = 0
-        if not white:
+        else:
             self.current_anchor_black = None
             self.anchor_black_count = 0
         return False
