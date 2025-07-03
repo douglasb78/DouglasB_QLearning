@@ -5,7 +5,7 @@ import numpy as np
 
 from game_logic import GameLogic, Sequence, LS
 
-WIN_VALUE = 15.0
+WIN_VALUE = 1.0
 CAUTION_VALUE = -0.1
 LOSS_VALUE = -1.0
 
@@ -113,7 +113,9 @@ class QLearningAlgo:
     def find_best_direction(self, x: int, y: int, white: bool):
         max_count = -1
         chosen_direction = None
-        for direction in LS:
+        lista_ls = list(LS)
+        random.shuffle(lista_ls)
+        for direction in lista_ls:
             dx, dy = self.game_logic.dicionario_direcoes[direction]
             count = 0
             for i in range(6):
@@ -129,8 +131,6 @@ class QLearningAlgo:
             if count > max_count:
                 max_count = count
                 chosen_direction = direction
-        if max_count <= 0:
-            chosen_direction = random.choice(list(LS))
         return (chosen_direction, max_count)
 
     # Função para tentar criar uma fileira, se não existir ameaça:

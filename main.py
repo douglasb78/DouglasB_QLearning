@@ -11,7 +11,7 @@ class GameScreen:
         pygame.init()
         self.screen_size = 600
         self.game_screen = pygame.display.set_mode((self.screen_size, self.screen_size))
-        pygame.display.set_caption("Five-in-a-row")
+        pygame.display.set_caption("Cinco em linha")
         self.timer = pygame.time.Clock()
         # Lógica:
         self.game_logic = GameLogic()
@@ -124,18 +124,28 @@ class GameScreen:
                             linha, coluna = self.encontrar_posicao_do_mouse(pygame.mouse.get_pos(), self.cell_size)
                             if self.game_logic.matrix[linha][coluna] == -1:
                                 self.game_logic.make_move(False, linha, coluna)
-                        self.jogador_atual = 1
-                    else:
+                            self.jogador_atual = 1
+                    elif self.jogador_atual == 1:
                         teste = self.qlearning.find_row_to_place_move_agaisnt(True)
                         if teste:
-                            #print(teste.string)
-                            self.qlearning.place_move_agaist_sequence(teste, True)
-                            self.jogador_atual = 0
+                            # Há ameaça de três, ou quatro:
+                            if teste[1]:
+                                self.qlearning.place_move_agaist_sequence(teste[0], True)
+                                self.jogador_atual = 0
+                            else:
+                                teste2 = None
+                                # Criar fileira:
+                                if(self.qlearning.current_anchor_white):
+                                    teste2 = self.qlearning.attempt_to_fill_row(self.qlearning.current_anchor_white, True)
+                                else:
+                                    teste2 = self.qlearning.attempt_to_fill_row(teste[0], True)
+                                if teste2:
+                                    self.jogador_atual = 0
                         else:
                             self.draw_empate = True
         self.desenhar_tabuleiro()
         pygame.display.flip()
-        self.timer.tick(1)
+        self.timer.tick(5)
 
 game_screen = GameScreen()
 
