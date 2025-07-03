@@ -100,7 +100,7 @@ class QLearningAlgo:
             if sequence.string in plays["must"]: score += WIN_VALUE
             elif sequence.string in plays["loss"]: score += LOSS_VALUE
             elif sequence.string in plays["caution"]: score += CAUTION_VALUE
-        print(score)
+        #print(score)
         self.q_table[last_sequence.string][played_move] += score
 
     def is_board_full(self):
@@ -197,11 +197,13 @@ class QLearningAlgo:
             score = self.q_table[sequence.string][i]
             candidatos.append((score, i))
         candidatos.sort(reverse=True, key=lambda t: t[0])
-        escolhido = candidatos[0][1]
-        #escolhido = random.choice(indices_livres)
+        if random.randint(0, 100) > 30:
+            escolhido = candidatos[0][1]
+        else:
+            escolhido = random.choice(indices_livres)
         dx, dy = self.game_logic.dicionario_direcoes[sequence.shape]
         x, y = sequence.start
-        print(indices_livres, (x+dy*escolhido, y+dx*escolhido), escolhido)
+        #print(indices_livres, (x+dy*escolhido, y+dx*escolhido), escolhido)
         self.game_logic.make_move(white, x+dy*escolhido, y+dx*escolhido)
         self.analyze_play(sequence, escolhido, white)
 
