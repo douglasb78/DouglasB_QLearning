@@ -132,17 +132,18 @@ class QLearningAlgo:
             dx, dy = self.game_logic.dicionario_direcoes[direction[0]]
             current_count = self.anchor_white_count if white else self.anchor_black_count
             print(f"{sequence.start[0] + dy * current_count} -- {sequence.start[1] + dx * current_count}")
-            x = sequence.start[0]
-            y = sequence.start[1]
-            if not ((x + dy * current_count >= 15) or (y + dx * current_count >= 15) or (x + dy * current_count < 0) or (y + dx * current_count < 0)):
-                self.game_logic.make_move(white, sequence.start[0] + dy * current_count, sequence.start[1] + dx * current_count)
-                if white:
-                    self.anchor_white_count += 1
-                else:
-                    self.anchor_black_count += 1
-                return True
-            else:
+            if(sequence.start[0] + dy * current_count < 0 ) or (sequence.start[0] + dy * current_count >= 15 ):
+                if not white and self.current_anchor_black: self.current_anchor_black = None
                 return False
+            if(sequence.start[1] + dx * current_count < 0 ) or (sequence.start[1] + dx * current_count >= 15 ):
+                if white and self.current_anchor_white: self.current_anchor_white = None
+                return False
+            self.game_logic.make_move(white, sequence.start[0] + dy * current_count, sequence.start[1] + dx * current_count)
+            if white:
+                self.anchor_white_count += 1
+            else:
+                self.anchor_black_count += 1
+            return True
         if white:
             self.current_anchor_white = None
             self.anchor_white_count = 0

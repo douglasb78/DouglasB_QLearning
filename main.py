@@ -62,7 +62,7 @@ class GameScreen:
         else:
             if self.fully_ai:
                 for event in pygame.event.get():
-                    if event.type == pygame.KEYUP:
+                    if event.type == pygame.KEYUP or True:
                         if self.jogador_atual == 0:
                             teste = self.qlearning.find_row_to_place_move_agaisnt(False)
                             if teste:
@@ -70,15 +70,18 @@ class GameScreen:
                                 if teste[1]:
                                     print(teste[0].string)
                                     self.qlearning.place_move_agaist_sequence(teste[0], False)
+                                    self.jogador_atual = 1
                                 else:
-                                        # Criar fileira:
-                                        if(self.qlearning.current_anchor_black):
-                                            self.qlearning.attempt_to_fill_row(self.qlearning.current_anchor_black, False)
-                                        else:
-                                            self.qlearning.attempt_to_fill_row(teste[0], False)
+                                    teste2 = None
+                                    # Criar fileira:
+                                    if(self.qlearning.current_anchor_black):
+                                        teste2 = self.qlearning.attempt_to_fill_row(self.qlearning.current_anchor_black, False)
+                                    else:
+                                        teste2 = self.qlearning.attempt_to_fill_row(teste[0], False)
+                                    if teste2:
+                                        self.jogador_atual = 1
                             else:
                                 self.draw_empate = True
-                            self.jogador_atual = 1
                         else:
                                 teste = self.qlearning.find_row_to_place_move_agaisnt(True)
                                 if teste:
@@ -86,15 +89,18 @@ class GameScreen:
                                     if teste[1]:
                                         print(teste[0].string)
                                         self.qlearning.place_move_agaist_sequence(teste[0], True)
+                                        self.jogador_atual = 0
                                     else:
+                                        teste2 = None
                                         # Criar fileira:
                                         if(self.qlearning.current_anchor_white):
-                                            self.qlearning.attempt_to_fill_row(self.qlearning.current_anchor_white, True)
+                                            teste2 = self.qlearning.attempt_to_fill_row(self.qlearning.current_anchor_white, True)
                                         else:
-                                            self.qlearning.attempt_to_fill_row(teste[0], True)
+                                            teste2 = self.qlearning.attempt_to_fill_row(teste[0], True)
+                                        if teste2:
+                                            self.jogador_atual = 0
                                 else:
                                     self.draw_empate = True
-                                self.jogador_atual = 0
             else:
                 for evento in pygame.event.get():
                     if evento.type == pygame.QUIT:
