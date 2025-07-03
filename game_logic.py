@@ -55,6 +55,6 @@ class GameLogic:
                     if all(self.matrix[i - k][j + k] == color for k in range(5)):
                         return color
         return -1
-
+#
     def make_move(self, white:int, x:int, y:int):
         self.matrix[x, y] = white
