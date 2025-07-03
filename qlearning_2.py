@@ -103,6 +103,13 @@ class QLearningAlgo:
         print(score)
         self.q_table[last_sequence.string][played_move] += score
 
+    def is_board_full(self):
+        for i in range(15):
+            for j in range(15):
+                if self.game_logic.matrix[i][j] == -1:
+                    return False
+        return True
+
     def find_best_direction(self, x: int, y: int, white: bool):
         max_count = -1
         chosen_direction = None

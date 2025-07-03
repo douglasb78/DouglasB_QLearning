@@ -55,6 +55,8 @@ class GameScreen:
             print("VITÓRIA DAS " + color)
             pygame.event.get()
             pygame.event.get()
+        if self.qlearning.is_board_full():
+            self.draw_empate = True
         if self.draw_empate or type(color) == str:
             if self.draw_empate: print("EMPATE")
             self.draw_empate = False
