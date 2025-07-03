@@ -1,7 +1,8 @@
+import numpy as np
 import pygame, sys
+from qlearning_2 import QLearningAlgo
 
 from game_logic import GameLogic
-from qlearning import QLearning, LS, Sequence
 
 
 class GameScreen:
@@ -12,16 +13,13 @@ class GameScreen:
         self.game_screen = pygame.display.set_mode((self.screen_size, self.screen_size))
         pygame.display.set_caption("Five-in-a-row")
         self.timer = pygame.time.Clock()
-        self.vitoria = False
         # Lógica:
         self.game_logic = GameLogic()
-        self.qlearning = QLearning(self.game_logic)
-        self.threat = None
-        self.jogador_atual = 0  # 0 = preto | 1 = branco
-        self.cell_size = self.screen_size / self.game_logic.grid_size
-
-    def set_threat(self, threat: Sequence):
-        self.threat = threat
+        self.fully_ai = True
+        self.draw_empate = False
+        self.qlearning = QLearningAlgo(self.game_logic)
+        self.jogador_atual = 0 # 0 = preto | 1 = branco
+        self.cell_size = self.screen_size/self.game_logic.grid_size
 
     def encontrar_centro(self, linha, coluna, tamanho_celula):
         x = coluna * tamanho_celula + tamanho_celula // 2
@@ -45,53 +43,80 @@ class GameScreen:
         for i in range(self.game_logic.grid_size):
             for j in range(self.game_logic.grid_size):
                 if self.game_logic.matrix[i][j] == 0:
-                    pygame.draw.circle(self.game_screen, "black", self.encontrar_centro(i, j, self.cell_size),
-                                       self.cell_size / 2.5)
+                    pygame.draw.circle(self.game_screen, "black", self.encontrar_centro(i, j, self.cell_size), self.cell_size/2.5)
                 elif self.game_logic.matrix[i][j] == 1:
-                    pygame.draw.circle(self.game_screen, "gray", self.encontrar_centro(i, j, self.cell_size),
-                                       self.cell_size / 2.5)
-        if self.threat:
-            pygame.draw.line(self.game_screen, "red",
-                             self.encontrar_centro(self.threat.start[0], self.threat.start[1], self.cell_size),
-                             self.encontrar_centro(self.threat.end[0], self.threat.end[1], self.cell_size))
+                    pygame.draw.circle(self.game_screen, "gray", self.encontrar_centro(i, j, self.cell_size), self.cell_size/2.5)
 
     def idle(self):
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if not self.vitoria:
-                if self.jogador_atual == 0:
-                    print(self.jogador_atual)
-                    if evento.type == pygame.MOUSEBUTTONDOWN:
-                        linha, coluna = self.encontrar_posicao_do_mouse(pygame.mouse.get_pos(), self.cell_size)
-                        if self.game_logic.matrix[linha][coluna] == -1:
-                            self.game_logic.matrix[linha][coluna] = self.jogador_atual
-                            if [linha, coluna] in self.qlearning.last_path:
-                                self.qlearning.last_path = []
-                            self.jogador_atual = 1
-                else:
-                    self.qlearning.play_move(self.threat, self.game_logic)
-                    self.threat = None
-                    self.jogador_atual = 0
         # Checar vitória:
         color = self.game_logic.check_win()
         if color >= 0:
             color = "PRETAS" if color == 0 else "BRANCAS"
             print("VITÓRIA DAS " + color)
-            self.vitoria = True
-        if self.jogador_atual == 1:
-            if self.threat:
-                print(self.threat.string, self.threat.seq_type, self.threat.start, self.threat.end)
-                print(self.qlearning.get_sequence(self.threat))
-                self.set_threat(self.threat)
+            pygame.event.get()
+            pygame.event.get()
+        if self.draw_empate or type(color) == str:
+            if self.draw_empate: print("EMPATE")
+            self.draw_empate = False
+            self.game_logic.matrix = np.full((self.game_logic.grid_size+6, self.game_logic.grid_size+6), -1)
+        else:
+            if self.fully_ai:
+                for event in pygame.event.get():
+                    if event.type == pygame.KEYUP:
+                        if self.jogador_atual == 0:
+                            teste = self.qlearning.find_row_to_place_move_agaisnt(False)
+                            if teste:
+                                # Há ameaça de três, ou quatro:
+                                if teste[1]:
+                                    print(teste[0].string)
+                                    self.qlearning.place_move_agaist_sequence(teste[0], False)
+                                else:
+                                        # Criar fileira:
+                                        if(self.qlearning.current_anchor_black):
+                                            self.qlearning.attempt_to_fill_row(self.qlearning.current_anchor_black, False)
+                                        else:
+                                            self.qlearning.attempt_to_fill_row(teste[0], False)
+                            else:
+                                self.draw_empate = True
+                            self.jogador_atual = 1
+                        else:
+                                teste = self.qlearning.find_row_to_place_move_agaisnt(True)
+                                if teste:
+                                    # Há ameaça de três, ou quatro:
+                                    if teste[1]:
+                                        print(teste[0].string)
+                                        self.qlearning.place_move_agaist_sequence(teste[0], True)
+                                    else:
+                                        # Criar fileira:
+                                        if(self.qlearning.current_anchor_white):
+                                            self.qlearning.attempt_to_fill_row(self.qlearning.current_anchor_white, True)
+                                        else:
+                                            self.qlearning.attempt_to_fill_row(teste[0], True)
+                                else:
+                                    self.draw_empate = True
+                                self.jogador_atual = 0
             else:
-                self.set_threat(None)
-        self.threat = self.qlearning.detect_threats()
+                for evento in pygame.event.get():
+                    if evento.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    if self.jogador_atual == 0:
+                        if evento.type == pygame.MOUSEBUTTONDOWN:
+                            linha, coluna = self.encontrar_posicao_do_mouse(pygame.mouse.get_pos(), self.cell_size)
+                            if self.game_logic.matrix[linha][coluna] == -1:
+                                self.game_logic.make_move(False, linha, coluna)
+                        self.jogador_atual = 1
+                    else:
+                        teste = self.qlearning.find_row_to_place_move_agaisnt(True)
+                        if teste:
+                            print(teste.string)
+                            self.qlearning.place_move_agaist_sequence(teste, True)
+                            self.jogador_atual = 0
+                        else:
+                            self.draw_empate = True
         self.desenhar_tabuleiro()
         pygame.display.flip()
-        self.timer.tick(180)
-
+        self.timer.tick(3600)
 
 game_screen = GameScreen()
 
